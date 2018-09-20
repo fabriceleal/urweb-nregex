@@ -3,11 +3,11 @@ type testChar = char -> bool
 
 datatype pattern =
 	 Literal of string
-       | OneOf of list char
+       | OneOf of testChar
        | FromStart of pattern
        | Seq of list pattern
-       | OneOrMoreOf of list char
-       | OptOf of list char
+       | OneOrMoreOf of testChar
+       | OptOf of testChar
        | Group of pattern
 
 val testPgn = "[Event \"Reykjavik Open\"]
@@ -38,7 +38,7 @@ Rbb2 {[%emt 0:00:02]} 25. Bf1 {[%emt 0:00:30]} h5 {[%emt 0:00:10]} 26. a5 {
 [%emt 0:02:24]} a6 {[%emt 0:00:16]} 27. Bc5 {[%emt 0:03:33]} g6 {[%emt 0:00:52]
 } 1-0
 "
-fun isOneOf opts test =
+fun isOneOf (opts : list char) (test : char) =
     case opts of
 	[] => False
       | h :: t  =>
@@ -57,12 +57,42 @@ fun splitChs s =
 	    (strsub s 0) :: (splitChs (substring s 1 (l - (1))))
     end
 
-val anyLett = splitChs "AdhibanBaskaranResult1-0PlyCount4ECOD15DateSiteEventAdhibanBaskaran8.1?ReykjavikIcelandOpenPlyCount"
-val anyLettAndWs = splitChs "Adhiban, BaskaranResult1-0PlyCount4ECOD15DateSiteEventAdhibanBaskaran8.1?Reykjavik,IcelandOpenPlyCount "
-val whitespace = splitChs " "
-val quote = splitChs "\""
-val leftb = splitChs "["
-val rightb = splitChs "]"
+(*
+val anyLett = isalpha 
+val whitespace = isspace 
+val anyLettAndWs = fn c => (anyLett c) || (whitespace c) 
+val quote = fn c => c = #"\"" 
+val leftb = fn c => c = #"[" 
+val rightb = fn c => c = #"]"
+*)
+(*
+
+    
+val anyLett = isOneOf (splitChs "abcdefghijhklmnopqrstuwyxzABCDEFGHIJHKLMNOPQRSTUVWXYZ,")
+val whitespace = isOneOf (splitChs " ")
+val anyLettAndWs = isOneOf (splitChs "abcdefghijhklmnopqrstuwyxzABCDEFGHIJHKLMNOPQRSTUVWXYZ, ")
+val quote = isOneOf (splitChs "\"")
+val leftb =  isOneOf (splitChs "[")
+val rightb =  isOneOf (splitChs "]")
+ *)
+
+
+(* 
+fun anyLett c = isOneOf (splitChs "abcdefghijhklmnopqrstuwyxzABCDEFGHIJHKLMNOPQRSTUVWXYZ,") c
+fun whitespace c = isOneOf (splitChs " ") c
+fun anyLettAndWs c = isOneOf (splitChs "abcdefghijhklmnopqrstuwyxzABCDEFGHIJHKLMNOPQRSTUVWXYZ, ") c
+fun quote c = isOneOf (splitChs "\"") c
+fun leftb c =  isOneOf (splitChs "[") c
+fun rightb c =  isOneOf (splitChs "]") c
+ *)
+    
+(**)
+fun anyLett _ = False
+fun whitespace _ = False
+fun anyLettAndWs _ = False
+fun quote _ = False
+fun leftb _ = False
+fun rightb _ = False
 
 val matchEventTag =
 (*    (Group (OneOrMoreOf anyLett)) *)
@@ -89,7 +119,7 @@ fun seekOneOf str testFn accidx =
 	if (l = 0) then
 	    None
 	else
-	    case (isOneOf testFn (strsub str 0)) of
+	    case (testFn (strsub str 0)) of
 		True => Some accidx
 	      | _ =>
 		seekOneOf (substring str 1 (l - (1))) testFn (accidx + 1)
@@ -200,33 +230,45 @@ fun splitAllLines str =
 	None => []
       | Some (h, t) =>
 	h :: (splitAllLines t)
-   
-fun test () =
+
+
+fun testNRe () =
     let
 	val lines = splitAllLines testPgn
-
 	val lines2 = List.mp matchForStr lines 
-		    
-	(* val r = match "Event \"test\"" matchEventTag False *)
-
-	fun resToXml r =
-	    case r of
-		    None => <xml>none</xml>
-		  | Some m =>
-		    <xml>
-		      <div>{[(show m.Start)]}</div>
-		      <div>{[(show m.Len)]}</div>
-		      <div>
-			{ List.foldr (fn i acc => <xml>{acc} <div> {[show i]}</div></xml> ) <xml></xml> m.Groups }
-		      </div>
-		    </xml>		     
     in
-    return <xml>
-      <body>
-	<span>{
-    List.foldr (fn i acc => <xml>{acc} <div>{[show i.Line]} = {resToXml i.Result} </div></xml>) <xml></xml> lines2}
-	      
-	</span>
-      </body>
-    </xml>
+	return (Some lines2)
+    end
+   
+fun test () =
+    nregexSrc <- source None;
+    let
+	fun resToXml r =
+	    (case r of
+		None => <xml>none</xml>
+	      | Some m =>
+		<xml>
+		  <div>{[(show m.Start)]}</div>
+		  <div>{[(show m.Len)]}</div>
+		  <div>
+		    { List.foldr (fn i acc => <xml>{acc} <div> {[show i]}</div></xml> ) <xml></xml> m.Groups }
+		  </div>
+		</xml>)
+	    
+	and renderL lines =
+	    case lines of
+		None => return <xml>none</xml>
+	      | Some lines2 =>
+		return (List.foldr (fn i acc => <xml>{acc} <div>{[show i.Line]} = {resToXml i.Result} </div></xml>) <xml></xml> lines2)
+	and onL () =
+	    x <- rpc (testNRe ());
+	    set nregexSrc x;
+	    return ()
+    in	
+	return <xml>
+	  <body onload={onL ()}>
+	    <dyn signal={lines <- signal nregexSrc; renderL lines}>	      
+	    </dyn>
+	  </body>
+	</xml>
     end
