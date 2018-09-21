@@ -86,8 +86,7 @@ val anything = splitChs "[]%:abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNO
 val matchMoveTokens =
     Group (Eith ((Seq ((OneOrMoreOf digit) :: (Literal "." :: []))) :: (* 1. *)
                  (Seq ((OneOf piece) :: (OptOf (Literal "x")) :: (OneOf file) :: (OneOf rank) :: [])) :: (* Nf3 or Nxf3 *)
-                 (Seq ((OneOf file) :: (OneOf takes) :: (OneOf file) :: (OneOf rank) :: [])) :: (* dxe5 *)
-                 (Seq ((OneOf file) :: (OneOf rank) :: [])) :: (* d4 *)
+                 (Seq ((OneOf file) :: (OptOf (Seq ((OneOf takes) :: (OneOf file) :: []))) :: (OneOf rank) :: [])) :: (* d4 or dxe5 *)
 		 (Seq ((Literal "O-O") :: (OptOf (Literal "-O")) :: [])) :: (* castling *)
 		 (Seq ((Literal "{") :: (OneOrMoreOf anything) :: (Literal "}") :: [])) :: (* a comment *)
                  [] ))
