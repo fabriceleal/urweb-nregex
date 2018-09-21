@@ -23,6 +23,16 @@ datatype pgnTag =
        | HeaderKey
        | HeaderValue
 
+val show_pgn_tag = mkShow (fn tag => case tag of
+					 Castle => "Castle"
+				       | Piece => "Piece" 
+				       | PieceDesamb => "PieceDesamb"
+				       | Pawn => "Pawn"
+				       | MoveNbr => "MoveNbr"
+				       | Comment => "Comment"
+				       | HeaderKey => "HeaderKey"
+				       | HeaderValue => "HeaderValue")
+
 type patternPgn = pattern pgnTag
 		 
 val testPgn = "[Event \"Reykjavik Open\"]
@@ -128,7 +138,7 @@ fun startsWith str seq =
       | Some i => i = 0
 
 		  
-fun seekOneOf str testFn accidx =
+fun seekOneOf (str : string) (testFn : list char) (accidx : int) : option int =
     let
 	val l = strlen str
     in
@@ -141,7 +151,7 @@ fun seekOneOf str testFn accidx =
 		seekOneOf (substring str 1 (l - (1))) testFn (accidx + 1)
     end
 
-fun match (str : string) pat (zeroReq : bool) =
+fun match [t] (str : string) (pat : pattern t) (zeroReq : bool) : option (matched t) =
     case pat of
 	Literal s =>
 	if zeroReq then
@@ -176,14 +186,14 @@ fun match (str : string) pat (zeroReq : bool) =
 	     else
 		 Some m)
       | OneOrMoreOf fnCh =>
-	(case (match str (OneOf fnCh) zeroReq) of
+	(case (match str (OneOf fnCh : pattern t) zeroReq) of
 	    None => None
 	  | Some m =>
 	    let
 		val l = strlen str
 			
 		fun match' str accStart accLen =
-		    case (match str (OptOf (OneOf fnCh)) True) of
+		    case (match str (OptOf (OneOf fnCh) : pattern t) True) of
 			None => Some {Start=accStart, Len=accLen, Groups = []} (*optOf actually always matches *)
 		      | Some m' =>
 			let
@@ -202,7 +212,7 @@ fun match (str : string) pat (zeroReq : bool) =
 	(match str pat True)
       | Seq lsPat =>
 	let
-	    fun match' (str : string) t (accStart : int) (accLen : int) (accGroups : list string) =
+	    fun match' (str : string) (t : list (pattern t)) (accStart : int) (accLen : int) (accGroups : list (string * t)) =
 		case t of
 		    [] => Some { Start = accStart, Len = accLen, Groups = accGroups }
 		  | h :: t' =>
@@ -352,7 +362,7 @@ fun test () =
 		      </xml> *)
 	fun dispL i =
 	    List.foldr (fn e acc2 => <xml>{[case e of
-						(str, tag) => str]} {acc2}</xml>) <xml></xml> i
+						(str, tag) => str ^ " (" ^ (show tag) ^ ") "]} {acc2}</xml>) <xml></xml> i
     in
     return <xml>
       <body>
