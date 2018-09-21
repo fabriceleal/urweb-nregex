@@ -1,17 +1,30 @@
 
 type testChar = char -> bool
 
-datatype pattern =
+datatype pattern t =
 	 Literal of string
        | OneOf of list char
-       | FromStart of pattern
-       | Seq of list pattern
+       | FromStart of pattern t
+       | Seq of list (pattern t)
        | OneOrMoreOf of list char
-(* optOf isnt particularly smart if its pattern it's the same as then next pattern of the parent Seq *)
-       | OptOf of pattern 
-       | Group of pattern
-       | Eith of list pattern
+       (* optOf isnt particularly smart if its pattern it's the same as the next pattern of the parent Seq *)
+       (* using Eith and providing 2 possible paths is a way of dodging this issue*)
+       | OptOf of pattern t
+       | Group of (pattern t) * t
+       | Eith of list (pattern t)
 
+datatype pgnTag =
+	 Castle
+       | Piece
+       | PieceDesamb
+       | Pawn
+       | MoveNbr
+       | Comment
+       | HeaderKey
+       | HeaderValue
+
+type patternPgn = pattern pgnTag
+		 
 val testPgn = "[Event \"Reykjavik Open\"]
 [Site \"Reykjavik, Iceland\"]
 [Date \"????.??.??\"]
@@ -68,12 +81,12 @@ val quote = splitChs "\""
 val leftb = splitChs "["
 val rightb = splitChs "]"
 
-val matchHeader =
+val matchHeader : patternPgn =
     FromStart
 	(Seq ((OneOf leftb) ::
-	 (Group (OneOrMoreOf anyLett)) ::
+	 (Group ((OneOrMoreOf anyLett), HeaderKey)) ::
 	 (OneOrMoreOf whitespace) ::
-	 (OneOf quote) :: (Group (OneOrMoreOf anyLettAndWs)) ::
+	 (OneOf quote) :: (Group ((OneOrMoreOf anyLettAndWs), HeaderValue)) ::
 	 (OneOf quote) :: (OneOf rightb) :: [])) 
 
 val file = splitChs "abcdefgh"
@@ -81,23 +94,31 @@ val digit = splitChs "0123456789"
 val rank = splitChs "12345678"
 val piece = splitChs "KQRNB"
 val takes = splitChs "x"
-val anything = splitChs "[]%:abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUWVXYZ "
+val anything = splitChs "[]%:-/abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUWVXYZ "
 
 (* TODO promotions *)
 (* TODO check / mates *)
 (* TODO final result? *)
 (* TODO variations *)
 	       
-val matchMoveTokens =
-    Group (Eith ((Seq ((OneOrMoreOf digit) :: (Literal "." :: []))) :: (* 1. *)
-                 (Seq ((OneOf piece) :: (OneOf file) :: (OptOf (Literal "x")) :: (OneOf file) :: (OneOf rank) :: [])) :: (* Raa8 or Raxa8*)
-                 (Seq ((OneOf piece) :: (OptOf (Literal "x")) :: (OneOf file) :: (OneOf rank) :: [])) :: (* Nf3 or Nxf3 *)
-                 (Seq ((OneOf file) :: (OptOf (Seq ((OneOf takes) :: (OneOf file) :: []))) :: (OneOf rank) :: [])) :: (* d4 or dxe5 *)
-		 (Seq ((Literal "O-O") :: (OptOf (Literal "-O")) :: [])) :: (* castling *)
-		 (Seq ((Literal "{") :: (OneOrMoreOf anything) :: (Literal "}") :: [])) :: (* a comment *)
-                 [] ))
-    
-type matched = { Start: int, Len: int, Groups : list string }
+val matchMoveTokens : patternPgn =
+    Eith (
+          (* 1. *)
+          (Group (Seq ((OneOrMoreOf digit) :: (Literal "." :: [])), MoveNbr)) ::
+	  (* Raa8 or Raxa8*)
+          (Group (Seq (((OneOf piece) :: (OneOf file) :: (OptOf (Literal "x")) :: (OneOf file) :: (OneOf rank) :: [])), PieceDesamb)) ::
+	  (* Nf3 or Nxf3 *)
+          (Group (Seq (((OneOf piece) :: (OptOf (Literal "x")) :: (OneOf file) :: (OneOf rank) :: [])), Piece)) ::
+	  (* d4 or dxe5 *)
+          (Group (Seq (((OneOf file) :: (OptOf (Seq ((OneOf takes) :: (OneOf file) :: []))) :: (OneOf rank) :: [])), Pawn)) ::
+	  (* castling *)
+	  (Group (Seq (((Literal "O-O") :: (OptOf (Literal "-O")) :: [])), Castle)) ::
+	  (* a comment *)
+	  (Group (Seq (((Literal "{") :: (OneOrMoreOf anything) :: (Literal "}") :: [])), Comment)) :: 
+          [] )
+
+type matched t = { Start: int, Len: int, Groups : list (string * t) }
+type matchedPgn = matched pgnTag
 
 (* ugly as sin *)
 (* TODO improve this *)
@@ -120,7 +141,7 @@ fun seekOneOf str testFn accidx =
 		seekOneOf (substring str 1 (l - (1))) testFn (accidx + 1)
     end
 
-fun match (str : string) (pat : pattern) (zeroReq : bool) : option matched =
+fun match (str : string) pat (zeroReq : bool) =
     case pat of
 	Literal s =>
 	if zeroReq then
@@ -181,7 +202,7 @@ fun match (str : string) (pat : pattern) (zeroReq : bool) : option matched =
 	(match str pat True)
       | Seq lsPat =>
 	let
-	    fun match' (str : string) (t : list pattern) (accStart : int) (accLen : int) (accGroups : list string): option matched =
+	    fun match' (str : string) t (accStart : int) (accLen : int) (accGroups : list string) =
 		case t of
 		    [] => Some { Start = accStart, Len = accLen, Groups = accGroups }
 		  | h :: t' =>
@@ -238,14 +259,14 @@ fun match (str : string) (pat : pattern) (zeroReq : bool) : option matched =
 	end
 
 	
-      | Group pat =>
+      | Group (pat, tag) =>
 	let
 	    val m = match str pat zeroReq
 	in
 	    case m of
 		None => None
 	      | Some m' => 
-		Some {Start = m'.Start, Len = m'.Len, Groups = (substring str m'.Start m'.Len) :: m'.Groups}
+		Some {Start = m'.Start, Len = m'.Len, Groups = (substring str m'.Start m'.Len, tag) :: m'.Groups}
 	end
       | _ => None
 
@@ -330,7 +351,8 @@ fun test () =
 		      </div>
 		      </xml> *)
 	fun dispL i =
-	    List.foldr (fn e acc2 => <xml>{[e]} {acc2}</xml>) <xml></xml> i
+	    List.foldr (fn e acc2 => <xml>{[case e of
+						(str, tag) => str]} {acc2}</xml>) <xml></xml> i
     in
     return <xml>
       <body>
