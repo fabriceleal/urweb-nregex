@@ -7,7 +7,7 @@ datatype pattern =
        | FromStart of pattern
        | Seq of list pattern
        | OneOrMoreOf of list char
-       | OptOf of list char
+       | OptOf of pattern
        | Group of pattern
        | Eith of list pattern
 
@@ -85,9 +85,10 @@ val anything = splitChs "[]%:abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNO
 	   
 val matchMoveTokens =
     Group (Eith ((Seq ((OneOrMoreOf digit) :: (Literal "." :: []))) :: (* 1. *)
-                 (Seq ((OneOf piece) :: (OptOf takes) :: (OneOf file) :: (OneOf rank) :: [])) :: (* Nf3 or Nxf3 *)
+                 (Seq ((OneOf piece) :: (OptOf (Literal "x")) :: (OneOf file) :: (OneOf rank) :: [])) :: (* Nf3 or Nxf3 *)
                  (Seq ((OneOf file) :: (OneOf takes) :: (OneOf file) :: (OneOf rank) :: [])) :: (* dxe5 *)
                  (Seq ((OneOf file) :: (OneOf rank) :: [])) :: (* d4 *)
+		 (Seq ((Literal "O-O") :: (OptOf (Literal "-O")) :: [])) :: (* castling *)
 		 (Seq ((Literal "{") :: (OneOrMoreOf anything) :: (Literal "}") :: [])) :: (* a comment *)
                  [] ))
     
@@ -136,17 +137,17 @@ fun match (str : string) (pat : pattern) (zeroReq : bool) : option matched =
 		    None)
 	    else
 		Some {Start=i,Len=1, Groups = []})
-      | OptOf fnCh =>
-	(case (seekOneOf str fnCh 0) of
+      | OptOf pat =>
+	(case (match str pat False) of
 	     None => Some {Start=0, Len=0, Groups = []}
-	   | Some i =>
+	   | Some m =>
 	     if zeroReq then
-		 (if i = 0 then
-		      Some {Start=i,Len=1, Groups = []}
+		 (if m.Start = 0 then
+		      Some m
 		  else
-		      None)
+		      Some {Start=0, Len=0, Groups = []})
 	     else
-		 Some {Start=i,Len=1, Groups = []})
+		 Some m)
       | OneOrMoreOf fnCh =>
 	(case (match str (OneOf fnCh) zeroReq) of
 	    None => None
@@ -155,7 +156,7 @@ fun match (str : string) (pat : pattern) (zeroReq : bool) : option matched =
 		val l = strlen str
 			
 		fun match' str accStart accLen =
-		    case (match str (OptOf fnCh) True) of
+		    case (match str (OptOf (OneOf fnCh)) True) of
 			None => Some {Start=accStart, Len=accLen, Groups = []} (*optOf actually always matches *)
 		      | Some m' =>
 			let
