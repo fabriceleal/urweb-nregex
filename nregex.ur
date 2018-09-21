@@ -82,7 +82,12 @@ val rank = splitChs "12345678"
 val piece = splitChs "KQRNB"
 val takes = splitChs "x"
 val anything = splitChs "[]%:abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUWVXYZ "
-	   
+
+(* TODO promotions *)
+(* TODO check / mates *)
+(* TODO final result? *)
+(* TODO variations *)
+	       
 val matchMoveTokens =
     Group (Eith ((Seq ((OneOrMoreOf digit) :: (Literal "." :: []))) :: (* 1. *)
                  (Seq ((OneOf piece) :: (OneOf file) :: (OptOf (Literal "x")) :: (OneOf file) :: (OneOf rank) :: [])) :: (* Raa8 or Raxa8*)
@@ -95,6 +100,7 @@ val matchMoveTokens =
 type matched = { Start: int, Len: int, Groups : list string }
 
 (* ugly as sin *)
+(* TODO improve this *)
 fun startsWith str seq =
     case String.sindex {Haystack=str, Needle=seq} of
 	None => False
