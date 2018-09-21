@@ -7,7 +7,8 @@ datatype pattern =
        | FromStart of pattern
        | Seq of list pattern
        | OneOrMoreOf of list char
-       | OptOf of pattern
+(* optOf isnt particularly smart if its pattern it's the same as then next pattern of the parent Seq *)
+       | OptOf of pattern 
        | Group of pattern
        | Eith of list pattern
 
@@ -67,8 +68,7 @@ val quote = splitChs "\""
 val leftb = splitChs "["
 val rightb = splitChs "]"
 
-val matchEventTag =
-(*    (Group (OneOrMoreOf anyLett)) *)
+val matchHeader =
     FromStart
 	(Seq ((OneOf leftb) ::
 	 (Group (OneOrMoreOf anyLett)) ::
@@ -85,6 +85,7 @@ val anything = splitChs "[]%:abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNO
 	   
 val matchMoveTokens =
     Group (Eith ((Seq ((OneOrMoreOf digit) :: (Literal "." :: []))) :: (* 1. *)
+                 (Seq ((OneOf piece) :: (OneOf file) :: (OptOf (Literal "x")) :: (OneOf file) :: (OneOf rank) :: [])) :: (* Raa8 or Raxa8*)
                  (Seq ((OneOf piece) :: (OptOf (Literal "x")) :: (OneOf file) :: (OneOf rank) :: [])) :: (* Nf3 or Nxf3 *)
                  (Seq ((OneOf file) :: (OptOf (Seq ((OneOf takes) :: (OneOf file) :: []))) :: (OneOf rank) :: [])) :: (* d4 or dxe5 *)
 		 (Seq ((Literal "O-O") :: (OptOf (Literal "-O")) :: [])) :: (* castling *)
@@ -286,7 +287,7 @@ fun decomposePgn pgn =
 	    case lines' of
 		[] => []
 	      | h :: t =>
-		(case (match h matchEventTag False) of
+		(case (match h matchHeader False) of
 		     None => matchMoves t
 		   | Some m => (List.rev m.Groups) :: (matchHdrs t))     
     in
