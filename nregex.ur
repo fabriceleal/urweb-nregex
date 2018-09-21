@@ -9,6 +9,7 @@ datatype pattern =
        | OneOrMoreOf of list char
        | OptOf of list char
        | Group of pattern
+       | Eith of list pattern
 
 val testPgn = "[Event \"Reykjavik Open\"]
 [Site \"Reykjavik, Iceland\"]
@@ -37,7 +38,9 @@ Raxc8 {[%emt 0:00:05]} 20. Bxb7 {[%emt 0:00:05]} Rb8 {[%emt 0:00:12]} 21. Ba6 {
 Rbb2 {[%emt 0:00:02]} 25. Bf1 {[%emt 0:00:30]} h5 {[%emt 0:00:10]} 26. a5 {
 [%emt 0:02:24]} a6 {[%emt 0:00:16]} 27. Bc5 {[%emt 0:03:33]} g6 {[%emt 0:00:52]
 } 1-0
-"
+	"
+
+	      
 fun isOneOf opts test =
     case opts of
 	[] => False
@@ -57,8 +60,8 @@ fun splitChs s =
 	    (strsub s 0) :: (splitChs (substring s 1 (l - (1))))
     end
 
-val anyLett = splitChs "AdhibanBaskaranResult1-0PlyCount4ECOD15DateSiteEventAdhibanBaskaran8.1?ReykjavikIcelandOpenPlyCount"
-val anyLettAndWs = splitChs "Adhiban, BaskaranResult1-0PlyCount4ECOD15DateSiteEventAdhibanBaskaran8.1?Reykjavik,IcelandOpenPlyCount "
+val anyLett = splitChs "WhiteBlackAdhibanBaskaranResult1-0PlyCount4ECOD15DateSiteEventAdhibanBaskaran8.1?ReykjavikIcelandOpenPlyCount"
+val anyLettAndWs = splitChs "WhiteBlackAdhiban, BaskaranResult1-0PlyCount4ECOD15DateSiteEventAdhibanBaskaran8.1?Reykjavik,IcelandOpenPlyCount "
 val whitespace = splitChs " "
 val quote = splitChs "\""
 val leftb = splitChs "["
@@ -72,7 +75,22 @@ val matchEventTag =
 	 (OneOrMoreOf whitespace) ::
 	 (OneOf quote) :: (Group (OneOrMoreOf anyLettAndWs)) ::
 	 (OneOf quote) :: (OneOf rightb) :: [])) 
-	    
+
+val file = splitChs "abcdefgh"
+val digit = splitChs "0123456789"
+val rank = splitChs "12345678"
+val piece = splitChs "KQRNB"
+val takes = splitChs "x"
+val anything = splitChs "[]%:abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUWVXYZ "
+	   
+val matchMoveTokens =
+    Group (Eith ((Seq ((OneOrMoreOf digit) :: (Literal "." :: []))) :: (* 1. *)
+                 (Seq ((OneOf piece) :: (OptOf takes) :: (OneOf file) :: (OneOf rank) :: [])) :: (* Nf3 or Nxf3 *)
+                 (Seq ((OneOf file) :: (OneOf takes) :: (OneOf file) :: (OneOf rank) :: [])) :: (* dxe5 *)
+                 (Seq ((OneOf file) :: (OneOf rank) :: [])) :: (* d4 *)
+		 (Seq ((Literal "{") :: (OneOrMoreOf anything) :: (Literal "}") :: [])) :: (* a comment *)
+                 [] ))
+    
 type matched = { Start: int, Len: int, Groups : list string }
 
 (* ugly as sin *)
@@ -181,6 +199,38 @@ fun match (str : string) (pat : pattern) (zeroReq : bool) : option matched =
 			 match' (substring str idx ((strlen str) - idx)) t m.Start m.Len m.Groups
 		     end)
 	end
+      | Eith lsPat =>
+      (* scan string 1 char at a time and find best match *)
+	let
+	    fun match' str lsPat' accIdx =
+		(case lsPat' of
+		    [] =>
+		    if zeroReq then
+			None
+		    else
+			let
+			    val l = strlen str
+			in
+			    (if l = 0 then
+				None
+			    else
+				match' (substring str 1 (l - (1))) lsPat (accIdx + 1)) 
+			end
+		    
+		  | pat :: r =>
+		    let
+			val m' = match str pat True
+		    in
+			case m' of
+			    None => match' str r accIdx
+			  | Some m'' => Some {Start = accIdx, Len = m''.Len, Groups = m''.Groups }
+		    end)
+			
+	in
+	    match' str lsPat 0
+	end
+
+	
       | Group pat =>
 	let
 	    val m = match str pat zeroReq
@@ -192,39 +242,97 @@ fun match (str : string) (pat : pattern) (zeroReq : bool) : option matched =
 	end
       | _ => None
 
+fun optToList [t] (o : option t) : list t =
+    case o of
+	None => []
+      | Some a =>  a :: []
+
+fun matchAll str pat =
+    case (match str pat False) of
+	None => []
+      | Some m' =>
+	let
+	    val len = strlen str
+	    val idx = m'.Start + m'.Len
+	in
+	    m' :: (matchAll (substring str idx (len - idx)) pat)
+	end
+
 fun matchForStr str =
-   { Line=str, Result= match str matchEventTag False}
+    { Line=str,
+(*      Result = match str matchMoveTokens False, *)
+      Result = matchAll str matchMoveTokens
+    } (* EventTag *)
 
 fun splitAllLines str =
     case (String.ssplit {Haystack=str,Needle= "\n"}) of
 	None => []
       | Some (h, t) =>
 	h :: (splitAllLines t)
+
+	
+fun decomposePgn pgn =
+    let
+	val lines = splitAllLines pgn
+
+	fun matchMoves lines' =
+	    let
+		val line = List.foldr (fn i acc => i ^ acc) "" lines'
+	    in
+		List.mp (fn e => e.Groups) (matchAll line matchMoveTokens)
+	    end
+
+	fun matchHdrs lines' =
+	    case lines' of
+		[] => []
+	      | h :: t =>
+		(case (match h matchEventTag False) of
+		     None => matchMoves t
+		   | Some m => (List.rev m.Groups) :: (matchHdrs t))     
+    in
+	matchHdrs lines
+    end
+	
    
 fun test () =
     let
-	val lines = splitAllLines testPgn
-
+	val decomposed = decomposePgn testPgn
+	
+(*	val lines = List.rev (splitAllLines testPgn)
 	val lines2 = List.mp matchForStr lines 
-		    
-	(* val r = match "Event \"test\"" matchEventTag False *)
 
-	fun resToXml r =
+	fun resLToXml r =
+	    case r of
+		[] => <xml></xml>
+	      | m :: t =>
+		<xml>
+		  <div>
+		    { List.foldr (fn i acc => <xml>{acc} <div>{[show i]}</div></xml> ) <xml></xml> m.Groups }		    
+		  </div>
+		  { resLToXml t }
+		</xml>
+*)
+    (*
+	fun resToXml (r : option matched)   =
 	    case r of
 		    None => <xml>none</xml>
 		  | Some m =>
 		    <xml>
-		      <div>{[(show m.Start)]}</div>
-		      <div>{[(show m.Len)]}</div>
 		      <div>
-			{ List.foldr (fn i acc => <xml>{acc} <div> {[show i]}</div></xml> ) <xml></xml> m.Groups }
+			{ List.foldr (fn i acc => <xml>{acc} <div>{[show i]}</div></xml> ) <xml></xml> m.Groups }
 		      </div>
-		    </xml>		     
+		      </xml> *)
+	fun dispL i =
+	    List.foldr (fn e acc2 => <xml>{[e]} {acc2}</xml>) <xml></xml> i
     in
     return <xml>
       <body>
-	<span>{
-    List.foldr (fn i acc => <xml>{acc} <div>{[show i.Line]} = {resToXml i.Result} </div></xml>) <xml></xml> lines2}
+	<span>
+	  (* {
+	   List.foldr (fn i acc => <xml>{acc} <div>{[show i.Line]} = {resLToXml i.Result} </div></xml>) <xml></xml> lines2
+	   } *)
+
+{	  List.foldr (fn i acc => <xml><div>{dispL i}</div> {acc}</xml>) <xml></xml> decomposed }
 	      
 	</span>
       </body>
