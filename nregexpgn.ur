@@ -7,6 +7,7 @@ datatype pgnTag =
        | PieceDesamb
        | PawnMove
        | MoveNbr
+       | Result
        | Comment
        | HeaderKey
        | HeaderValue
@@ -20,7 +21,8 @@ val show_pgn_tag = mkShow (fn tag => case tag of
 				       | MoveNbr => "MoveNbr"
 				       | Comment => "Comment"
 				       | HeaderKey => "HeaderKey"
-				       | HeaderValue => "HeaderValue")
+				       | HeaderValue => "HeaderValue"
+				       | Result => "Result")
 
 type patternPgn = pattern pgnTag
 
@@ -29,30 +31,25 @@ type matchedPgn = matched pgnTag
 val testPgn = "[Event \"Reykjavik Open\"]
 [Site \"Reykjavik, Iceland\"]
 [Date \"????.??.??\"]
-[Round \"8.1\"]
-[White \"Adhiban, Baskaran\"]
-[Black \"Rapport, Richard\"]
-[Result \"1-0\"]
-[ECO \"D15\"]
-[PlyCount \"54\"]
+[Round \"8.3\"]
+[White \"Sarin, Nihal\"]
+[Black \"Vaibhav, Suri\"]
+[Result \"1/2-1/2\"]
+[ECO \"A29\"]
+[PlyCount \"38\"]
 
-1. d4 {[%emt 0:00:27]} d5 {[%emt 0:01:11]} 2. c4 {[%emt 0:00:42]} c6 {[%emt 0:
-00:06]} 3. Nf3 {[%emt 0:02:33]} Nf6 {[%emt 0:00:30]} 4. Nc3 {[%emt 0:00:05]}
-dxc4 {[%emt 0:00:05]} 5. e4 {[%emt 0:02:39]} b5 {[%emt 0:00:26]} 6. Be2 {
-[%emt 0:00:01]} e6 {[%emt 0:01:31]} 7. O-O {[%emt 0:00:46]} Be7 {[%emt 0:03:04]
-} 8. a4 {[%emt 0:03:34]} b4 {[%emt 0:00:44]} 9. e5 {[%emt 0:00:08]} bxc3 {
-[%emt 0:02:06]} 10. exf6 {[%emt 0:00:05]} Bxf6 {[%emt 0:00:14]} 11. bxc3 {
-[%emt 0:00:07]} Ba6 {[%emt 0:00:37]} 12. Ne5 {[%emt 0:17:30]} Bxe5 {[%emt 0:04:
-41]} 13. dxe5 {[%emt 0:00:02]} Qxd1 {[%emt 0:00:25]} 14. Rxd1 {[%emt 0:00:02]}
-Nd7 {[%emt 0:00:07]} 15. f4 {[%emt 0:04:04]} Nb6 {[%emt 0:04:54]} 16. Rd6 {
-[%emt 0:02:24]} O-O {[%emt 0:13:59]} 17. Bf3 {[%emt 0:08:12]} Nc8 {[%emt 0:07:
-22]} 18. Rxc6 {[%emt 0:02:30]} Bb7 {[%emt 0:00:29]} 19. Rxc8 {[%emt 0:00:02]}
-Raxc8 {[%emt 0:00:05]} 20. Bxb7 {[%emt 0:00:05]} Rb8 {[%emt 0:00:12]} 21. Ba6 {
-[%emt 0:02:05]} Rb3 {[%emt 0:00:15]} 22. Ba3 {[%emt 0:00:48]} Rd8 {[%emt 0:00:
-11]} 23. Bb4 {[%emt 0:00:47]} Rd2 {[%emt 0:00:39]} 24. Bxc4 {[%emt 0:00:11]}
-Rbb2 {[%emt 0:00:02]} 25. Bf1 {[%emt 0:00:30]} h5 {[%emt 0:00:10]} 26. a5 {
-[%emt 0:02:24]} a6 {[%emt 0:00:16]} 27. Bc5 {[%emt 0:03:33]} g6 {[%emt 0:00:52]
-} 1-0
+1. c4 {[%emt 0:00:09]} Nf6 {[%emt 0:00:26]} 2. Nc3 {[%emt 0:00:05]} e5 {
+[%emt 0:00:10]} 3. Nf3 {[%emt 0:00:24]} Nc6 {[%emt 0:00:06]} 4. g3 {[%emt 0:00:
+04]} d5 {[%emt 0:00:09]} 5. cxd5 {[%emt 0:00:02]} Nxd5 {[%emt 0:00:07]} 6. Bg2
+Nb6 {[%emt 0:00:21]} 7. O-O {[%emt 0:00:06]} Be7 {[%emt 0:00:05]} 8. a3 {
+[%emt 0:00:15]} O-O {[%emt 0:00:11]} 9. b4 {[%emt 0:00:07]} Be6 {[%emt 0:00:27]
+} 10. Rb1 {[%emt 0:00:12]} f6 {[%emt 0:00:24]} 11. b5 {[%emt 0:00:05]} Nd4 {
+[%emt 0:00:04]} 12. e3 {[%emt 0:00:05]} Nxf3+ {[%emt 0:00:06]} 13. Bxf3 {
+[%emt 0:00:02]} Qc8 {[%emt 0:00:19]} 14. Qc2 {[%emt 0:01:41]} Rd8 {[%emt 0:00:
+10]} 15. d4 {[%emt 0:00:05]} Bf5 {[%emt 0:11:21]} 16. Qb3+ {[%emt 0:01:08]} Be6
+{[%emt 0:00:39]} 17. Qc2 {[%emt 0:00:19]} Bf5 {[%emt 0:00:09]} 18. Qb3+ {
+[%emt 0:00:01]} Be6 {[%emt 0:00:16]} 19. Qc2 {[%emt 0:00:02]} Bf5 {[%emt 0:02:
+44]} 1/2-1/2
 	"
 
 
@@ -97,7 +94,11 @@ val matchMoveTokens : patternPgn =
 	  (Group (Literal "O-O-O", LongCastle)) ::
 	  (Group (Literal "O-O", Castle)) ::
 	  (* a comment *)
-	  (Group (Seq (((Literal "{") :: (OneOrMoreOf anything) :: (Literal "}") :: [])), Comment)) :: 
+	  (Group (Seq (((Literal "{") :: (OneOrMoreOf anything) :: (Literal "}") :: [])), Comment)) ::
+	  (* result *)
+	  (Group (Seq ((Eith ((Literal "1/2") :: (Literal "1") :: (Literal "0") :: [] )) ::
+		              (Literal "-") ::
+		       (Eith ((Literal "1/2") :: (Literal "1") :: (Literal "0") :: [] )) :: []), Result)) ::
           [] )
 
     
@@ -135,6 +136,7 @@ fun decomposePgn pgn =
 fun test () =
     let
 	val decomposed = decomposePgn testPgn
+	val merged = List.foldr List.append [] decomposed
 	
 (*	val lines = List.rev (splitAllLines testPgn)
 	val lines2 = List.mp matchForStr lines 
@@ -159,10 +161,14 @@ fun test () =
 		      <div>
 			{ List.foldr (fn i acc => <xml>{acc} <div>{[show i]}</div></xml> ) <xml></xml> m.Groups }
 		      </div>
-		      </xml> *)
+
+(*		      </xml> *)
 	fun dispL i =
 	    List.foldr (fn e acc2 => <xml>{[case e of
 						(str, tag) => str ^ " (" ^ (show tag) ^ ") "]} {acc2}</xml>) <xml></xml> i
+*)
+	fun disp e =
+	    <xml>{[case e of (str, tag) => str ^ " (" ^ (show tag) ^ ") "]} </xml>
     in
     return <xml>
       <body>
@@ -171,7 +177,7 @@ fun test () =
 	   List.foldr (fn i acc => <xml>{acc} <div>{[show i.Line]} = {resLToXml i.Result} </div></xml>) <xml></xml> lines2
 	   } *)
 
-{	  List.foldr (fn i acc => <xml><div>{dispL i}</div> {acc}</xml>) <xml></xml> decomposed }
+{	  List.foldr (fn i acc => <xml><div>{disp i}</div> {acc}</xml>) <xml></xml> merged }
 	      
 	</span>
       </body>

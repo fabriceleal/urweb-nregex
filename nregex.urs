@@ -23,3 +23,5 @@ val matchAll : t ::: Type -> string -> pattern t -> list (matched t)
 val splitAllLines : string -> list string
 			      
 		 
+val optToList : t ::: Type -> option t -> list t
+					  

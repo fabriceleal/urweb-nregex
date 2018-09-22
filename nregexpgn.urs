@@ -6,6 +6,7 @@ datatype pgnTag =
        | PieceDesamb
        | PawnMove
        | MoveNbr
+       | Result
        | Comment
        | HeaderKey
        | HeaderValue
