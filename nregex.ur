@@ -15,9 +15,10 @@ datatype pattern t =
 
 datatype pgnTag =
 	 Castle
+       | LongCastle
        | Piece
        | PieceDesamb
-       | Pawn
+       | PawnMove
        | MoveNbr
        | Comment
        | HeaderKey
@@ -25,9 +26,10 @@ datatype pgnTag =
 
 val show_pgn_tag = mkShow (fn tag => case tag of
 					 Castle => "Castle"
+				       | LongCastle => "LongCastle"
 				       | Piece => "Piece" 
 				       | PieceDesamb => "PieceDesamb"
-				       | Pawn => "Pawn"
+				       | PawnMove => "PawnMove"
 				       | MoveNbr => "MoveNbr"
 				       | Comment => "Comment"
 				       | HeaderKey => "HeaderKey"
@@ -120,9 +122,10 @@ val matchMoveTokens : patternPgn =
 	  (* Nf3 or Nxf3 *)
           (Group (Seq (((OneOf piece) :: (OptOf (Literal "x")) :: (OneOf file) :: (OneOf rank) :: [])), Piece)) ::
 	  (* d4 or dxe5 *)
-          (Group (Seq (((OneOf file) :: (OptOf (Seq ((OneOf takes) :: (OneOf file) :: []))) :: (OneOf rank) :: [])), Pawn)) ::
+          (Group (Seq (((OneOf file) :: (OptOf (Seq ((OneOf takes) :: (OneOf file) :: []))) :: (OneOf rank) :: [])), PawnMove)) ::
 	  (* castling *)
-	  (Group (Seq (((Literal "O-O") :: (OptOf (Literal "-O")) :: [])), Castle)) ::
+	  (Group (Literal "O-O-O", LongCastle)) ::
+	  (Group (Literal "O-O", Castle)) ::
 	  (* a comment *)
 	  (Group (Seq (((Literal "{") :: (OneOrMoreOf anything) :: (Literal "}") :: [])), Comment)) :: 
           [] )
