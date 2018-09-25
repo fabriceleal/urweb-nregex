@@ -53,8 +53,10 @@ Nb6 {[%emt 0:00:21]} 7. O-O {[%emt 0:00:06]} Be7 {[%emt 0:00:05]} 8. a3 {
 	"
 
 
-val anyLett = splitChs "WhiteBlackAdhibanBaskaranResult1-0PlyCount4ECOD15DateSiteEventAdhibanBaskaran8.1?ReykjavikIcelandOpenPlyCount"
-val anyLettAndWs = splitChs "WhiteBlackAdhiban, BaskaranResult1-0PlyCount4ECOD15DateSiteEventAdhibanBaskaran8.1?Reykjavik,IcelandOpenPlyCount "
+(* any char that can be used in a header key *)
+val anyLett = splitChs "abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUWVXYZ"
+(* any char that can be used in a header value *)
+val anyLettAndWs = splitChs "abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUWVXYZ?,.- "
 val whitespace = splitChs " "
 val quote = splitChs "\""
 val leftb = splitChs "["
@@ -109,11 +111,9 @@ fun matchForStr str =
       Result = matchAll str matchMoveTokens
     } (* EventTag *)
 
-    
-fun decomposePgn pgn =
-    let
-	val lines = splitAllLines pgn
 
+fun decomposePgnL lines = 
+    let
 	fun matchMoves lines' =
 	    let
 		val line = List.foldr (fn i acc => i ^ acc) "" lines'
@@ -131,6 +131,10 @@ fun decomposePgn pgn =
     in
 	matchHdrs lines
     end
+
+    
+fun decomposePgn pgn =
+    decomposePgnL (splitAllLines pgn)
 	
    
 fun test () =

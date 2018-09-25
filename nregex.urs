@@ -21,7 +21,8 @@ val match : t ::: Type -> string -> pattern t -> bool -> option (matched t)
 val matchAll : t ::: Type -> string -> pattern t -> list (matched t)
 
 val splitAllLines : string -> list string
-			      
+
+val startsWith : string -> string -> bool
 		 
 val optToList : t ::: Type -> option t -> list t
 					  

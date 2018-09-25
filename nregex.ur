@@ -203,7 +203,7 @@ fun matchAll [t] (str : string) (pat: pattern t) : list (matched t) =
 
 fun splitAllLines str =
     case (String.ssplit {Haystack=str,Needle= "\n"}) of
-	None => []
+	None => str :: []
       | Some (h, t) =>
 	h :: (splitAllLines t)
 
