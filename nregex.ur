@@ -57,14 +57,14 @@ fun splitChs s =
 	    (strsub s 0) :: (splitChs (substring s 1 (l - (1))))
     end
 
-(*
+(**)
 val anyLett = isalpha 
 val whitespace = isspace 
 val anyLettAndWs = fn c => (anyLett c) || (whitespace c) 
 val quote = fn c => c = #"\"" 
 val leftb = fn c => c = #"[" 
 val rightb = fn c => c = #"]"
-*)
+
 (*
 
     
@@ -86,14 +86,15 @@ fun leftb c =  isOneOf (splitChs "[") c
 fun rightb c =  isOneOf (splitChs "]") c
  *)
     
-(**)
+(*
 fun anyLett _ = False
 fun whitespace _ = False
 fun anyLettAndWs _ = False
 fun quote _ = False
 fun leftb _ = False
 fun rightb _ = False
-
+ *)
+    
 val matchEventTag =
 (*    (Group (OneOrMoreOf anyLett)) *)
     FromStart
@@ -112,7 +113,7 @@ fun startsWith str seq =
       | Some i => i = 0
 
 		  
-fun seekOneOf str testFn accidx =
+fun seekOneOf str (testFn : testChar) accidx =
     let
 	val l = strlen str
     in

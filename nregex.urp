@@ -1,3 +1,5 @@
+serverOnly Nregex.match
+serverOnly Nregex.testNRe
 
 $/list
 $/string
