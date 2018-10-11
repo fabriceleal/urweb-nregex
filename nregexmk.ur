@@ -3,6 +3,7 @@ open Nregex
 datatype mkTag =
 	 Hash
        | Word
+       | Hr
        | Whitespace
        | BoldDel
        | ItalicDel
@@ -23,6 +24,7 @@ val closebr = splitChs "]"
 val openp = splitChs "("
 val closep = splitChs ")"
 val italicDel = splitChs "_"
+val dash = splitChs "-"
 val boldDel = splitChs "*"
 val hash = splitChs "#"
 val whitespace = splitChs " "
@@ -42,6 +44,7 @@ val matchLinkParts : pattern mkLinkPart =
     
 val matchLineToken : pattern mkTag =
     Eith ((Group ((OneOrMoreOf hash), Hash)) ::
+	(Group ((OneOrMoreOf dash), Hr)) ::
 	(Group ((OneOrMoreOf whitespace), Whitespace)) ::
 	(Group ((OneOrMoreOf anyChar), Word)) ::
 	(Group ((OneOf boldDel), BoldDel)) ::

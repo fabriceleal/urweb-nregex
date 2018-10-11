@@ -2,6 +2,7 @@
 datatype mkTag =
 	 Hash
        | Word
+       | Hr
        | Whitespace
        | BoldDel
        | ItalicDel
