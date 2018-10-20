@@ -227,48 +227,13 @@ fun matchForStr str =
 
 fun splitAllLines str =
     case (String.ssplit {Haystack=str,Needle= "\n"}) of
-	None => []
+	None => str :: []
       | Some (h, t) =>
 	h :: (splitAllLines t)
 
-
-fun testNRe () =
-    let
-	val lines = splitAllLines testPgn
-	val lines2 = List.mp matchForStr lines 
-    in
-	return (Some lines2)
-    end
-   
-fun test () =
-    nregexSrc <- source None;
-    let
-	fun resToXml r =
-	    (case r of
-		None => <xml>none</xml>
-	      | Some m =>
-		<xml>
-		  <div>{[(show m.Start)]}</div>
-		  <div>{[(show m.Len)]}</div>
-		  <div>
-		    { List.foldr (fn i acc => <xml>{acc} <div> {[show i]}</div></xml> ) <xml></xml> m.Groups }
-		  </div>
-		</xml>)
-	    
-	and renderL lines =
-	    case lines of
-		None => return <xml>none</xml>
-	      | Some lines2 =>
-		return (List.foldr (fn i acc => <xml>{acc} <div>{[show i.Line]} = {resToXml i.Result} </div></xml>) <xml></xml> lines2)
-	and onL () =
-	    x <- rpc (testNRe ());
-	    set nregexSrc x;
-	    return ()
-    in	
-	return <xml>
-	  <body onload={onL ()}>
-	    <dyn signal={lines <- signal nregexSrc; renderL lines}>	      
-	    </dyn>
-	  </body>
-	</xml>
-    end
+fun test () =    
+    return <xml>
+      <body>
+	{List.foldr (fn i acc => <xml>{acc} <div>{[show i.Line]} </div></xml>) <xml></xml> (List.mp matchForStr (splitAllLines testPgn))}
+      </body>
+    </xml>
