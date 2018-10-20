@@ -32,7 +32,7 @@ fun match (str : string) (pat : pattern) : option matched =
 	     Some {Start=i,Len=1, Groups = []})
 	
 fun matchForStr str =
-   { Line=str, Result= match str (OneOf isalpha)}
+   { Line=str, Result= (match str (OneOf isalpha))}
 
 fun splitAllLines str =
     case (String.ssplit {Haystack=str,Needle= "\n"}) of
