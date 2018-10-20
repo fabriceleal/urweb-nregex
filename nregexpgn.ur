@@ -9,6 +9,9 @@ datatype pgnTag =
        | MoveNbr
        | Result
        | Comment
+       | Promotion
+       | StartVariation
+       | EndVariation
        | HeaderKey
        | HeaderValue
 
@@ -20,6 +23,9 @@ val show_pgn_tag = mkShow (fn tag => case tag of
 				       | PawnMove => "PawnMove"
 				       | MoveNbr => "MoveNbr"
 				       | Comment => "Comment"
+				       | Promotion => "Promotion"
+				       | StartVariation => "StartVariation"
+				       | EndVariation => "EndVariation"
 				       | HeaderKey => "HeaderKey"
 				       | HeaderValue => "HeaderValue"
 				       | Result => "Result")
@@ -56,7 +62,7 @@ Nb6 {[%emt 0:00:21]} 7. O-O {[%emt 0:00:06]} Be7 {[%emt 0:00:05]} 8. a3 {
 (* any char that can be used in a header key *)
 val anyLett = splitChs "abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUWVXYZ"
 (* any char that can be used in a header value *)
-val anyLettAndWs = splitChs "abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUWVXYZ?,.- "
+val anyLettAndWs = splitChs "abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUWVXYZ?,.-:/\\+()%@ "
 val whitespace = splitChs " "
 val quote = splitChs "\""
 val leftb = splitChs "["
@@ -67,20 +73,19 @@ val matchHeader : patternPgn =
 	(Seq ((OneOf leftb) ::
 	 (Group ((OneOrMoreOf anyLett), HeaderKey)) ::
 	 (OneOrMoreOf whitespace) ::
-	 (OneOf quote) :: (Group ((OneOrMoreOf anyLettAndWs), HeaderValue)) ::
+	 (OneOf quote) :: (Group ((OptOf (OneOrMoreOf anyLettAndWs)), HeaderValue)) ::
 	 (OneOf quote) :: (OneOf rightb) :: [])) 
 
 val file = splitChs "abcdefgh"
 val digit = splitChs "0123456789"
 val rank = splitChs "12345678"
 val piece = splitChs "KQRNB"
+val promotablePiece = splitChs "QRNB"
 val takes = splitChs "x"
-val anything = splitChs "[]%:-/abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUWVXYZ "
-
-(* TODO promotions *)
-(* TODO check / mates *)
-(* TODO final result? *)
-(* TODO variations *)
+val anything = splitChs "?,.-:/\\+()[]%@:.-/abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUWVXYZ "
+val varSt = splitChs "("
+val varEnd = splitChs ")"
+	     
 	       
 val matchMoveTokens : patternPgn =
     Eith (
@@ -90,13 +95,20 @@ val matchMoveTokens : patternPgn =
           (Group (Seq (((OneOf piece) :: (OneOf file) :: (OptOf (Literal "x")) :: (OneOf file) :: (OneOf rank) :: [])), PieceDesamb)) ::
 	  (* Nf3 or Nxf3 *)
           (Group (Seq (((OneOf piece) :: (OptOf (Literal "x")) :: (OneOf file) :: (OneOf rank) :: [])), Piece)) ::
+	  (* d8=Q or dxe8=Q *)
+          (Group (Seq (((OneOf file) :: (OptOf (Seq ((OneOf takes) :: (OneOf file) :: []))) :: (OneOf rank) ::
+				     (Literal "=") :: (OneOf promotablePiece) :: [])), Promotion)) ::
 	  (* d4 or dxe5 *)
           (Group (Seq (((OneOf file) :: (OptOf (Seq ((OneOf takes) :: (OneOf file) :: []))) :: (OneOf rank) :: [])), PawnMove)) ::
 	  (* castling *)
 	  (Group (Literal "O-O-O", LongCastle)) ::
 	  (Group (Literal "O-O", Castle)) ::
 	  (* a comment *)
-	  (Group (Seq (((Literal "{") :: (OneOrMoreOf anything) :: (Literal "}") :: [])), Comment)) ::
+	  (Seq ((Literal "{") :: (Group ((OneOrMoreOf anything), Comment)) :: (Literal "}") :: [])) ::
+	  (* start variation *)
+	  (Group (Literal "(", StartVariation)) ::
+	  (* end variation *)
+	  (Group (Literal ")", EndVariation)) ::
 	  (* result *)
 	  (Group (Seq ((Eith ((Literal "1/2") :: (Literal "1") :: (Literal "0") :: [] )) ::
 		              (Literal "-") ::
@@ -111,26 +123,29 @@ fun matchForStr str =
       Result = matchAll str matchMoveTokens
     } (* EventTag *)
 
-
-fun decomposePgnL lines = 
+fun matchMoves lines' =
     let
-	fun matchMoves lines' =
-	    let
-		val line = List.foldr (fn i acc => i ^ acc) "" lines'
-	    in
-		List.mp (fn e => e.Groups) (matchAll line matchMoveTokens)
-	    end
-
-	fun matchHdrs lines' =
-	    case lines' of
-		[] => []
-	      | h :: t =>
-		(case (match h matchHeader False) of
-		     None => matchMoves t
-		   | Some m => (List.rev m.Groups) :: (matchHdrs t))     
+	val line = List.foldr (fn i acc => i ^ acc) "" lines'
     in
-	matchHdrs lines
+	List.mp (fn e => e.Groups) (matchAll line matchMoveTokens)
     end
+
+fun matchHdrs lines' =
+    case lines' of
+	[] => []
+      | h :: t =>
+	(case (match h matchHeader False) of
+	     None => matchMoves lines' (* this can be an empty line or it could be the very first line of a plain pgn *)
+	   | Some m => (List.rev m.Groups) :: (matchHdrs t))  
+	
+
+fun isHeader line =
+    case (match line matchHeader True) of
+	None => False
+      | Some _ => True
+
+fun decomposePgnL lines =
+    matchHdrs lines
 
     
 fun decomposePgn pgn =
