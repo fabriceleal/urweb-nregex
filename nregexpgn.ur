@@ -60,13 +60,13 @@ Nb6 {[%emt 0:00:21]} 7. O-O {[%emt 0:00:06]} Be7 {[%emt 0:00:05]} 8. a3 {
 
 
 (* any char that can be used in a header key *)
-val anyLett = splitChs "abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUWVXYZ"
+val anyLett = IsAlNum
 (* any char that can be used in a header value *)
-val anyLettAndWs = splitChs "abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUWVXYZ?,.-:/\\+()%@ "
-val whitespace = splitChs " "
-val quote = splitChs "\""
-val leftb = splitChs "["
-val rightb = splitChs "]"
+val anyLettAndWs = COr (IsSpace :: anyLett :: [])
+val whitespace = IsSpace
+val quote = CLiteral #"\""
+val leftb = CLiteral #"["
+val rightb = CLiteral #"]"
 
 val matchHeader : patternPgn =
     FromStart
@@ -76,15 +76,15 @@ val matchHeader : patternPgn =
 	 (OneOf quote) :: (Group ((OptOf (OneOrMoreOf anyLettAndWs)), HeaderValue)) ::
 	 (OneOf quote) :: (OneOf rightb) :: [])) 
 
-val file = splitChs "abcdefgh"
-val digit = splitChs "0123456789"
-val rank = splitChs "12345678"
-val piece = splitChs "KQRNB"
-val promotablePiece = splitChs "QRNB"
-val takes = splitChs "x"
-val anything = splitChs "?,.-:/\\+()[]%@:.-/abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUWVXYZ "
-val varSt = splitChs "("
-val varEnd = splitChs ")"
+val file = charsToSet (splitChs "abcdefgh")
+val digit = charsToSet (splitChs "0123456789")
+val rank = charsToSet (splitChs "12345678")
+val piece = charsToSet (splitChs "KQRNB")
+val promotablePiece = charsToSet (splitChs "QRNB")
+val takes = CLiteral #"x"
+val anything = IsAlNum
+val varSt = CLiteral #"("
+val varEnd = CLiteral #")"
 	     
 	       
 val matchMoveTokens : patternPgn =

@@ -1,18 +1,84 @@
 
-type testChar = char -> bool
+datatype charset =
+IsAlNum
+| IsAlpha
+| IsBlank
+| IsCntrl
+| IsDigit
+| IsGraph
+| IsLower
+| IsPrint
+| IsPunct
+| IsSpace
+| IsUpper
+| IsXDigit
+| CLiteral of char
+| CAnd of list charset
+| COr of list charset
+| CNot of charset
+	  
+fun testInSet s c =
+    case s of
+	IsAlNum => isalnum c
+      | IsAlpha => isalpha c
+      | IsBlank => isblank c
+      | IsCntrl => iscntrl c
+      | IsDigit => isdigit c
+      | IsGraph => isgraph c
+      | IsLower => islower c
+      | IsPrint => isprint c
+      | IsPunct => ispunct c
+      | IsSpace => isspace c
+      | IsUpper => isupper c
+      | IsXDigit => isxdigit c
+      | CLiteral c' => c = c'
+      | CAnd l =>
+	let
+	    fun eval' l =
+		case l of
+		    [] => True
+		  | h :: t =>
+		    if (testInSet h c) then
+			eval' t
+		    else
+			False
 
+	    fun eval l =
+		case l of
+		    [] => False
+		  | _ => eval' l
+	in
+	    eval l
+	end
+      | COr l =>
+	let
+	    fun eval l =
+		case l of
+		    [] => False
+		  | h :: t =>
+		    if (testInSet h c) then
+			True
+		    else
+			eval t
+		    
+	in
+	    eval l
+	end
+      | CNot s => not (testInSet s c)
+		
 datatype pattern t =
 	 Literal of string
-       | OneOf of list char
+       | OneOf of charset
        | FromStart of pattern t
        | Seq of list (pattern t)
-       | OneOrMoreOf of list char
+       | OneOrMoreOf of charset
        (* optOf isnt particularly smart if its pattern it's the same as the next pattern of the parent Seq *)
        (* using Eith and providing 2 possible paths is a way of dodging this issue*)
        | OptOf of pattern t
        | Group of (pattern t) * t
        | Eith of list (pattern t)
-	      
+
+(*
 fun isOneOf opts test =
     case opts of
 	[] => False
@@ -20,7 +86,7 @@ fun isOneOf opts test =
 	if h = test then
 	    True
 	else
-	    isOneOf t test
+	    isOneOf t test *)
 
 fun splitChs s =
     let
@@ -31,6 +97,14 @@ fun splitChs s =
 	else
 	    (strsub s 0) :: (splitChs (substring s 1 (l - (1))))
     end
+
+fun joinChs cs =
+    case cs of
+	[] => ""
+      | h :: t => (show h) ^ (joinChs t)
+
+fun charsToSet l =
+    COr (List.mp (fn e => CLiteral e) l)
 
 type matched t = { Start: int, Len: int, Groups : list (string * t) }
 
@@ -43,14 +117,14 @@ fun startsWith str seq =
       | Some i => i = 0
 
 		  
-fun seekOneOf (str : string) (testFn : list char) (accidx : int) : option int =
+fun seekOneOf (str : string) (testFn : charset) (accidx : int) : option int =
     let
 	val l = strlen str
     in
 	if (l = 0) then
 	    None
 	else
-	    case (isOneOf testFn (strsub str 0)) of
+	    case (testInSet testFn (strsub str 0)) of
 		True => Some accidx
 	      | _ =>
 		seekOneOf (substring str 1 (l - (1))) testFn (accidx + 1)

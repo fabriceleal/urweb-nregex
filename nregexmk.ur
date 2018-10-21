@@ -19,17 +19,17 @@ val mk_link_part_eq = mkEq (fn a b =>
 				 | (UrlSpecText, UrlSpecText) => True
 				 | _ => False)
 		      
-val openbr = splitChs "["
-val closebr = splitChs "]"
-val openp = splitChs "("
-val closep = splitChs ")"
-val italicDel = splitChs "_"
-val dash = splitChs "-"
-val boldDel = splitChs "*"
-val hash = splitChs "#"
-val whitespace = splitChs " "
-val anyChar = splitChs "ABCDEFGHIKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
-val anyCharUrl = List.append anyChar (splitChs ":/.")
+val openbr = CLiteral #"["
+val closebr = CLiteral #"]"
+val openp = CLiteral #"("
+val closep = CLiteral #")"
+val italicDel = CLiteral #"_"
+val dash = CLiteral #"-"
+val boldDel = CLiteral #"*"
+val hash = CLiteral #"#"
+val whitespace = IsSpace
+val anyChar = IsAlNum
+val anyCharUrl = COr (IsAlNum :: (charsToSet (splitChs ":/.")) :: [])
 
 (* FIXME fix this when we can use anonymous functions in a algebraic datatype. we want to return at once a single group,
 							 the tag of which has the 2 elements of a link (text + url) *)
