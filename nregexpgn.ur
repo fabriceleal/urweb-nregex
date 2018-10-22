@@ -60,20 +60,22 @@ Nb6 {[%emt 0:00:21]} 7. O-O {[%emt 0:00:06]} Be7 {[%emt 0:00:05]} 8. a3 {
 
 
 (* any char that can be used in a header key *)
-val anyLett = IsAlNum
+val validHdrChar = IsAlNum
 (* any char that can be used in a header value *)
-val anyLettAndWs = COr (IsSpace :: anyLett :: [])
-val whitespace = IsSpace
+val break = COr ((CLiteral #"\r") :: (CLiteral #"\n") :: [])
+val whitespace = CAnd (IsSpace :: (CNot break) :: [])
 val quote = CLiteral #"\""
 val leftb = CLiteral #"["
 val rightb = CLiteral #"]"
+val validValChar = CAnd ((CNot quote) :: (CNot break) :: [])
+
 
 val matchHeader : patternPgn =
     FromStart
 	(Seq ((OneOf leftb) ::
-	 (Group ((OneOrMoreOf anyLett), HeaderKey)) ::
+	 (Group ((OneOrMoreOf validHdrChar), HeaderKey)) ::
 	 (OneOrMoreOf whitespace) ::
-	 (OneOf quote) :: (Group ((OptOf (OneOrMoreOf anyLettAndWs)), HeaderValue)) ::
+	 (OneOf quote) :: (Group ((OptOf (OneOrMoreOf validValChar)), HeaderValue)) ::
 	 (OneOf quote) :: (OneOf rightb) :: [])) 
 
 val file = charsToSet (splitChs "abcdefgh")
@@ -82,7 +84,7 @@ val rank = charsToSet (splitChs "12345678")
 val piece = charsToSet (splitChs "KQRNB")
 val promotablePiece = charsToSet (splitChs "QRNB")
 val takes = CLiteral #"x"
-val anything = IsAlNum
+val validCommentChar = CNot (CLiteral #"}")
 val varSt = CLiteral #"("
 val varEnd = CLiteral #")"
 	     
@@ -104,7 +106,7 @@ val matchMoveTokens : patternPgn =
 	  (Group (Literal "O-O-O", LongCastle)) ::
 	  (Group (Literal "O-O", Castle)) ::
 	  (* a comment *)
-	  (Seq ((Literal "{") :: (Group ((OneOrMoreOf anything), Comment)) :: (Literal "}") :: [])) ::
+	  (Seq ((Literal "{") :: (Group ((OneOrMoreOf validCommentChar), Comment)) :: (Literal "}") :: [])) ::
 	  (* start variation *)
 	  (Group (Literal "(", StartVariation)) ::
 	  (* end variation *)
