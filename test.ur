@@ -14,7 +14,7 @@ fun joinChs cs =
 	[] => ""
       | h :: t => (show h) ^ (joinChs t)
 
-val lit = "á"
+val lit = "áÁba12_.! &/{}[]()$王玉飛龍角馬金銀全桂圭香杏歩と"
 val l = splitChs lit
 val j = joinChs l
 	
@@ -29,7 +29,7 @@ return <xml>
 	<th>str1</th>
 	<th>ord</th>
 	<th>isalnum</th>
-(*	<th>isalpha</th>
+	<th>isalpha</th>
 	<th>isdigit</th>
 	<th>isblank</th>
 	<th>isprint</th>
@@ -39,7 +39,9 @@ return <xml>
 	<th>isupper</th>
 	<th>isspace</th>	
 	<th>ispunct</th>
-	<th>isxdigit</th>*)
+	<th>isxdigit</th>(**)
+	<th>tolower</th>
+	<th>toupper</th>
       </tr>
 
       {List.foldr (fn e acc => <xml>
@@ -48,7 +50,7 @@ return <xml>
 	  <td>{[str1 e]}</td>
 	  <td>{[show (ord e)]}</td>
 	  <td>{[show (isalnum e)]}</td>
-(*	  <td>{[show (isalpha e)]}</td>
+	  <td>{[show (isalpha e)]}</td>
 	  <td>{[show (isdigit e)]}</td>
 	  <td>{[show (isblank e)]}</td>
 	  <td>{[show (isprint e)]}</td>
@@ -58,7 +60,9 @@ return <xml>
 	  <td>{[show (isupper e)]}</td>
 	  <td>{[show (isspace e)]}</td>
 	  <td>{[show (ispunct e)]}</td>
-	  <td>{[show (isxdigit e)]}</td>*)
+	  <td>{[show (isxdigit e)]}</td>(**)
+	  <td>{[show (tolower e)]}</td>
+	  <td>{[show (toupper e)]}</td>
       </tr>{acc}</xml>) <xml></xml> l}
       
     </table>
